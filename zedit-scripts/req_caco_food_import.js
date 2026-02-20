@@ -1,10 +1,11 @@
 const cacoFile = xelib.FileByName('Complete Alchemy & Cooking Overhaul.esp');
 const reqCACOFile = xelib.FileByName('Requiem - CACO.esp');
-const reqCACOCCFile = xelib.FileByName('Reqiuem - CACO - CC.esp');
 const reqARFile = xelib.FileByName('Requiem - Alchemy Redone.esp');
 const reqDBFile = xelib.FileByName('Fozars_Dragonborn_-_Requiem_Patch.esp');
 const reqFile = xelib.FileByName('Requiem.esp');
 const updateFile = xelib.FileByName('Update.esm');
+const cacoSurvival = xelib.FileByName('CACO_Survival Mode_Patch.esp');
+const cacoFishing = xelib.FileByName('CC-Fishing_CACO_Patch.esp');
 
 const Survival_FoodRestoreHungerLarge = xelib.GetElement(updateFile, "01002EE4");
 const Survival_FoodRestoreHungerMedium = xelib.GetElement(updateFile, "01002EE3");
@@ -16,43 +17,55 @@ const Survival_FoodRestoreCold  = xelib.GetElement(updateFile, "01002EE5");
 const REQ_Effect_Food_DamageAttributes = xelib.GetElement(reqFile, "5E04A316");
 
 const FoodBlankEffect = xelib.GetElement(cacoFile, "512F8742");
-const CACO_FoodWaterEffect = xelib.GetElement(cacoFile, "514E3D17");
+const KRYGhostveilTEST = xelib.GetElement(cacoFile, "5104C7FA");
+const beerEffect = xelib.GetElement(cacoFile, "5144BC98");
 
 
 let food = {};
 let magicEffects = {};
 
-xelib.GetRecords(reqCACOFile, 'ALCH', true).forEach(record => {
+xelib.GetRecords(reqFile, 'ALCH', true).forEach(record => {
+    food[xelib.EditorID(record)] = xelib.GetMasterRecord(record);
+});
+xelib.GetRecords(cacoFile, 'ALCH', true).forEach(record => {
+    food[xelib.EditorID(record)] = xelib.GetMasterRecord(record);
+});
+xelib.GetRecords(cacoSurvival, 'ALCH', true).forEach(record => {
+    food[xelib.EditorID(record)] = xelib.GetMasterRecord(record);
+});
+xelib.GetRecords(cacoFishing, 'ALCH', true).forEach(record => {
     food[xelib.EditorID(record)] = xelib.GetMasterRecord(record);
 });
 
-xelib.GetRecords(reqCACOCCFile, 'ALCH', true).forEach(record => {
-    food[xelib.EditorID(record)] = xelib.GetMasterRecord(record);
+xelib.GetRecords(reqFile, 'MGEF', true).forEach(record => {
+    magicEffects[xelib.EditorID(record)] = xelib.GetMasterRecord(record);
+});
+xelib.GetRecords(cacoFile, 'MGEF', true).forEach(record => {
+    magicEffects[xelib.EditorID(record)] = xelib.GetMasterRecord(record);
+});
+xelib.GetRecords(cacoSurvival, 'MGEF', true).forEach(record => {
+    magicEffects[xelib.EditorID(record)] = xelib.GetMasterRecord(record);
+});
+xelib.GetRecords(cacoFishing, 'MGEF', true).forEach(record => {
+    magicEffects[xelib.EditorID(record)] = xelib.GetMasterRecord(record);
 });
 
-xelib.GetRecords(reqCACOFile, 'MGEF', true).forEach(record => {
-    magicEffects[xelib.EditorID(record)] = record;
-})
-
-xelib.GetRecords(reqCACOCCFile, 'MGEF', true).forEach(record => {
-    magicEffects[xelib.EditorID(record)] = record;
-})
 
 const funcSurvivalAdd = (reqCacoFood, effect) => {
     let newSurvivalEffect = xelib.AddArrayItem(reqCacoFood, 'Effects', 'EFIT\\Magnitude', '0');
     xelib.SetIntValue(newSurvivalEffect, 'EFIT\\Magnitude', 0);
-    xelib.SetLinksTo(newSurvivalEffect, 'EFID', effect);
+    xelib.SetLinksTo(newSurvivalEffect, effect, 'EFID');
 }
 
 const cacoEffectAdd = (reqCacoFood, effect, duration, magnitude) => {
     let newCACOEffect = xelib.AddArrayItem(reqCacoFood, 'Effects', 'EFIT\\Magnitude', magnitude);
     xelib.SetIntValue(newCACOEffect, 'EFIT\\Duration', duration);
-    xelib.SetLinksTo(newCACOEffect, 'EFID', effect);
+    xelib.SetLinksTo(newCACOEffect, effect, 'EFID');
 }
 
 let magicArray = [];
 
-fh.loadTextFile('C:\\Users\\schof\\Downloads\\REQ CACO 3 Food - New Stuff (1).csv','').toString().split(/\r?\n/).forEach(line => {
+fh.loadTextFile('C:\\Users\\schof\\Downloads\\Untitled spreadsheet - REQ CACO (6).csv','').toString().split(/\r?\n/).forEach(line => {
     const textArray = line.split(',');
     const editorID = textArray[0].split(" ")[0].replaceAll('\"','');
     zedit.log(editorID);
@@ -60,28 +73,34 @@ fh.loadTextFile('C:\\Users\\schof\\Downloads\\REQ CACO 3 Food - New Stuff (1).cs
         magicArray = textArray;
         return;
     }
-    const record = food[editorID];
-    if (!record) {
+    let record = food[editorID];
+    const type = parseInt(textArray[1]);
+    const level = textArray[2];
+    if (!record || type === NaN) {
         return;
     }
-    zedit.log(record.toString());    
+    if (type === -2) {
+        xelib.RemoveElement(reqCACOFile, editorID);
+        return;
+    }   
     const overrides = [record].concat(xelib.GetOverrides(record));
     let cacoFood;
-    let reqCacoFood;
     let reqFood;
     overrides.forEach(override => {
-        if (xelib.GetFileName(xelib.GetElementFile(override)).indexOf('CACO') > -1 && (xelib.GetFileName(xelib.GetElementFile(override)).indexOf('Requiem') > -1 || xelib.GetFileName(xelib.GetElementFile(override)).indexOf('Reqiuem') > -1)) {
-            reqCacoFood = override;        
-        } else if (xelib.GetFileName(xelib.GetElementFile(override)) === 'Complete Alchemy & Cooking Overhaul.esp' || (xelib.GetFileName(xelib.GetElementFile(override)).indexOf('CACO') > -1 && xelib.GetFileName(xelib.GetElementFile(override)).indexOf('Requiem') === -1 && xelib.GetFileName(xelib.GetElementFile(override)).indexOf('Reqiuem') === -1)) {
+        if ((xelib.GetFileName(xelib.GetElementFile(override)) === 'Complete Alchemy & Cooking Overhaul.esp' || (xelib.GetFileName(xelib.GetElementFile(override)).indexOf('CACO') > -1)) && (xelib.GetFileName(xelib.GetElementFile(override)).indexOf('Requiem - CACO') === -1)) {
             cacoFood = override;
         } else if (xelib.GetFileName(xelib.GetElementFile(override)) === 'Requiem.esp' || xelib.GetFileName(xelib.GetElementFile(override)) === 'Fozars_Dragonborn_-_Requiem_Patch.esp') {
            reqFood = override; 
         }
     })
-    if (reqFood) {
-        xelib.SetElement(xelib.GetElement(reqCacoFood, 'EDID'), xelib.GetElement(reqFood, 'EDID'));
+    const reqCacoFood = xelib.CopyElement(record, reqCACOFile, false);
+    if (type === -1) {
+        xelib.SetValue(reqCacoFood, 'EDID', 'XXX_' + editorID);
+        return;
     }
     if (cacoFood) {
+        xelib.SetElement(xelib.GetElement(reqCacoFood, 'EDID'), xelib.GetElement(cacoFood, 'EDID'));
+        xelib.SetElement(xelib.GetElement(reqCacoFood, 'FULL'), xelib.GetElement(cacoFood, 'FULL'));
         xelib.SetElement(xelib.GetElement(reqCacoFood, 'OBND'), xelib.GetElement(cacoFood, 'OBND'));    
         if (!xelib.GetElement(reqCacoFood, 'KWDA')) {
             xelib.AddElement(reqCacoFood, 'KWDA')
@@ -103,6 +122,10 @@ fh.loadTextFile('C:\\Users\\schof\\Downloads\\REQ CACO 3 Food - New Stuff (1).cs
         xelib.SetElement(xelib.GetElement(reqCacoFood, 'DATA'), xelib.GetElement(cacoFood, 'DATA')); 
         xelib.SetElement(xelib.GetElement(reqCacoFood, 'ENIT'), xelib.GetElement(cacoFood, 'ENIT'));
     }
+    if (reqFood) {
+        xelib.SetElement(xelib.GetElement(reqCacoFood, 'EDID'), xelib.GetElement(reqFood, 'EDID'));
+        xelib.SetElement(xelib.GetElement(reqCacoFood, 'FULL'), xelib.GetElement(reqFood, 'FULL'));
+    }
     xelib.RemoveElement(reqCacoFood, 'Effects');
     xelib.AddElement(reqCacoFood, 'Effects');
     if (cacoFood) {
@@ -122,39 +145,47 @@ fh.loadTextFile('C:\\Users\\schof\\Downloads\\REQ CACO 3 Food - New Stuff (1).cs
         if (InebriationEffect) {
             cacoEffectAdd(reqCacoFood, InebriationEffect, 0, '0');
         }
+    } else if (editorID === 'REQ_Drink_CinnabarBeer') {
+        cacoEffectAdd(reqCacoFood, beerEffect, 0, '0');
     }
     let addedSurival = false;
     let addedEffect = false;
     const isAlchohol = xelib.HasKeyword(reqCacoFood, 'VendorItemDrinkAlcohol [KYWD:01AF101A]');
-    for(i = 7;i<textArray.length;i+=2)
+    for(i = 6;i<textArray.length;i+=2)
     {
-        if (textArray[i].trim()) {
-            const magicEffectID = magicArray[i].split(" ")[0].replaceAll('\"','');
+        if (textArray[i].trim()) {      
+            const magicEffectID = magicArray[i].split('|')[type-1];
             const magicEffectRec = magicEffects[magicEffectID];       
             const value = textArray[i];
             const duration = parseInt(textArray[i+1]);
             if (!addedSurival && !isAlchohol) {
                 switch(duration) {
-                    case 240:
-                        funcSurvivalAdd(reqCacoFood, Survival_FoodRestoreHungerSmall);
-                        cacoEffectAdd(reqCacoFood, FoodBlankEffect, duration * 2, '0');
+                    case 0:
+                        if (level.indexOf('*') > -1) {
+                            funcSurvivalAdd(reqCacoFood, Survival_FoodRestoreHungerMedium);
+                            cacoEffectAdd(reqCacoFood, FoodBlankEffect, duration, '0');
+                        }
                         break;
-                    case 480:
-                        funcSurvivalAdd(reqCacoFood, Survival_FoodRestoreHungerMedium);
-                        cacoEffectAdd(reqCacoFood, FoodBlankEffect, duration * 2, '0');
-                        break;  
+                    case 360:
+                        funcSurvivalAdd(reqCacoFood, Survival_FoodRestoreHungerSmall);
+                        cacoEffectAdd(reqCacoFood, FoodBlankEffect, duration, '0');
+                        break;
                     case 720:
+                        funcSurvivalAdd(reqCacoFood, Survival_FoodRestoreHungerMedium);
+                        cacoEffectAdd(reqCacoFood, FoodBlankEffect, duration, '0');
+                        break;  
+                    case 1080:
                         funcSurvivalAdd(reqCacoFood, Survival_FoodRestoreHungerLarge);
-                        cacoEffectAdd(reqCacoFood, CACO_FoodWaterEffect, duration * 2, '0');
+                        cacoEffectAdd(reqCacoFood, KRYGhostveilTEST, duration, '0');
+                        if (editorID.toUpperCase().indexOf('HOT') > -1) {
+                            cacoEffectAdd(reqCacoFood, Survival_FoodFortifyWarmth, duration, '25');
+                            cacoEffectAdd(reqCacoFood, Survival_FoodRestoreCold, 0, '200');
+                        }
                         break;                                            
                 }
                 addedSurival = true;
-                if (editorID.toUpperCase().indexOf('HOT') > -1) {
-                    cacoEffectAdd(reqCacoFood, Survival_FoodFortifyWarmth, duration * 2, '25');
-                    cacoEffectAdd(reqCacoFood, Survival_FoodRestoreCold, 0, '200');
-                }
             }
-            cacoEffectAdd(reqCacoFood, magicEffectRec, duration === 180 ? duration : duration * 2, value);
+            cacoEffectAdd(reqCacoFood, magicEffectRec, duration, value);
             addedEffect = true;
         }
     }
@@ -162,7 +193,7 @@ fh.loadTextFile('C:\\Users\\schof\\Downloads\\REQ CACO 3 Food - New Stuff (1).cs
         funcSurvivalAdd(reqCacoFood, Survival_FoodRestoreHungerVerySmall);
         cacoEffectAdd(reqCacoFood, FoodBlankEffect, 30, '0');        
     }
-    if (cacoFood && xelib.HasKeyword(cacoFood, 'VendorItemFoodRaw [KYWD:000A0E56]')) {
+    if ((cacoFood && xelib.HasKeyword(cacoFood, 'VendorItemFoodRaw [KYWD:000A0E56]')) || (reqFood && xelib.HasKeyword(reqFood, 'REQ_ContaminatedFood [KYWD:5EAE3726]'))) {
         cacoEffectAdd(reqCacoFood, REQ_Effect_Food_DamageAttributes, 0, '60');  
     }
     xelib.RemoveArrayItem(reqCacoFood, 'Effects', 'EFID', 'NULL - Null Reference [00000000]');

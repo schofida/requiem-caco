@@ -36,7 +36,7 @@ const rawFood = xelib.GetElement(skyrimFile, "000A0E56");
 const salt = xelib.GetElement(updateFile, '01CCA101');
 
 
-xelib.GetRecords(reqCACOCCFile, 'ALCH', true).forEach(record => {
+xelib.GetRecords(reqCACOFile, 'ALCH', true).forEach(record => {
     if (!xelib.GetFlag(record, 'ENIT\\Flags', 'Food Item')) {
         return;
     }
@@ -49,21 +49,37 @@ xelib.GetRecords(reqCACOCCFile, 'ALCH', true).forEach(record => {
         const keepGoing = ((xelib.GetFileName(xelib.GetElementFile(reference)).indexOf('CACO') > -1 && xelib.GetFileName(xelib.GetElementFile(reference)).indexOf('CC') > -1)
         || xelib.GetFileName(xelib.GetElementFile(reference)) === 'CACO_Survival Mode_Patch.esp'
         || xelib.GetFileName(xelib.GetElementFile(reference)) === 'CACO Rare Curios Patch.esp'
-        || xelib.GetFileName(xelib.GetElementFile(reference)) === 'CACO_Saints&Seducers.esp');
+        || xelib.GetFileName(xelib.GetElementFile(reference)) === 'CACO_Saints&Seducers.esp'
+        || xelib.GetFileName(xelib.GetElementFile(reference)) === 'Complete Alchemy & Cooking Overhaul.esp');
         if (!keepGoing) {
             return;
         }
         if (xelib.Signature(reference) === 'COBJ') {
             zedit.log('Goes Here 1');
-            const newRef = xelib.CopyElement(reference, reqCACOCCFile, false);
+            const newRef = xelib.CopyElement(reference, reqCACOFile, false);
             zedit.log('Goes Here 2');
             if (removedFood) {
+                xelib.SetValue(newRef, 'EDID', 'XXX_' + xelib.GetValue(reference, 'EDID'));
                 xelib.SetLinksTo(newRef, 'BNAM', REQ_DisableRecipe);
                 return;
-            } else if(WorkingHasEffect(record, FoodBlankEffect)) {
-                xelib.SetIntValue(newRef, 'NAM1', 2);
             } else if(xelib.GetElements(newRef, 'Items').length === 1 && xelib.HasKeyword(xelib.GetLinksTo(xelib.GetElements(newRef, 'Items')[0], 'CNTO\\Item'), xelib.LongName(rawFood))) {
                 xelib.AddItem(newRef, xelib.LongName(salt), '1');
+            }
+            if (!removedFood) {
+                xelib.SetElement(xelib.GetElement(newRef, 'BNAM'), xelib.GetElement(reference, 'BNAM')); 
+                const master =  xelib.GetMasterRecord(reference);
+                const overrides = [master].concat(xelib.GetOverrides(master));
+                let reqRecord;
+                overrides.forEach(override => {
+                    if (xelib.GetFileName(xelib.GetElementFile(override)) === 'Requiem.esp' || xelib.GetFileName(xelib.GetElementFile(override)) === 'Fozars_Dragonborn_-_Requiem_Patch.esp') {
+                        reqRecord = override; 
+                    }
+                })
+                if (reqRecord) {
+                    xelib.SetValue(newRef, 'EDID', xelib.GetValue(reqRecord, 'EDID'));   
+                } else {
+                    xelib.SetValue(newRef, 'EDID', xelib.GetValue(reference, 'EDID'));   
+                }        
             }
             zedit.log('Goes Here 3');
             if (!xelib.HasElement(newRef, 'Conditions')) {
@@ -92,7 +108,7 @@ xelib.GetRecords(reqCACOCCFile, 'ALCH', true).forEach(record => {
         zedit.log('Goes Here 5');
         if (xelib.Signature(reference) === 'LVLI' && removedFood && xelib.HasLeveledEntry(reference, xelib.LongName(record))) {
             zedit.log('Goes Here 6');
-            const newRef = xelib.CopyElement(reference, reqCACOCCFile, false);
+            const newRef = xelib.CopyElement(reference, reqCACOFile, false);
             xelib.RemoveLeveledEntry(newRef, xelib.LongName(record))
             zedit.log('Goes Here 7');
         }
