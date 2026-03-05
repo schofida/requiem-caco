@@ -6,6 +6,7 @@ const reqFile = xelib.FileByName('Requiem.esp');
 const updateFile = xelib.FileByName('Update.esm');
 const cacoSurvival = xelib.FileByName('CACO_Survival Mode_Patch.esp');
 const cacoFishing = xelib.FileByName('CC-Fishing_CACO_Patch.esp');
+const skyrimFile = xelib.FileByName('Skyrim.esm');
 
 const Survival_FoodRestoreHungerLarge = xelib.GetElement(updateFile, "01002EE4");
 const Survival_FoodRestoreHungerMedium = xelib.GetElement(updateFile, "01002EE3");
@@ -19,6 +20,27 @@ const REQ_Effect_Food_DamageAttributes = xelib.GetElement(reqFile, "5E04A316");
 const FoodBlankEffect = xelib.GetElement(cacoFile, "512F8742");
 const KRYGhostveilTEST = xelib.GetElement(cacoFile, "5104C7FA");
 const beerEffect = xelib.GetElement(cacoFile, "5144BC98");
+
+const SublistInnCookedMeal_KRY = xelib.GetElement(reqCACOFile, "51892091");
+
+const REQ_DisableRecipe = xelib.GetElement(reqFile, "5EAD3B01");
+
+
+const CACO_FoodWaterEffect = xelib.GetElement(cacoFile, "512F8742");
+
+const Chef1 = xelib.GetElement(reqCACOFile, "000C07CB");
+const Chef2 = xelib.GetElement(reqCACOFile, "00105F2A");
+
+const cookingLevel = "01CCA030";
+const enableCookLevel = xelib.GetElement(updateFile, "01CCA031");
+const apprenticeLvl = "01CCA032";
+const adeptLvl = "01CCA033";
+const expertLvl = "01CCA034";
+const masterLvl = "01CCA035";
+
+const rawFood = xelib.GetElement(skyrimFile, "000A0E56");
+
+const salt = xelib.GetElement(updateFile, '01CCA101');
 
 
 let food = {};
@@ -50,6 +72,8 @@ xelib.GetRecords(cacoFishing, 'MGEF', true).forEach(record => {
     magicEffects[xelib.EditorID(record)] = xelib.GetMasterRecord(record);
 });
 
+xelib.RemoveElement(SublistInnCookedMeal_KRY, 'Leveled List Entries');
+xelib.AddElement(SublistInnCookedMeal_KRY, 'Leveled List Entries');
 
 const funcSurvivalAdd = (reqCacoFood, effect) => {
     let newSurvivalEffect = xelib.AddArrayItem(reqCacoFood, 'Effects', 'EFIT\\Magnitude', '0');
@@ -61,6 +85,84 @@ const cacoEffectAdd = (reqCacoFood, effect, duration, magnitude) => {
     let newCACOEffect = xelib.AddArrayItem(reqCacoFood, 'Effects', 'EFIT\\Magnitude', magnitude);
     xelib.SetIntValue(newCACOEffect, 'EFIT\\Duration', duration);
     xelib.SetLinksTo(newCACOEffect, effect, 'EFID');
+}
+
+const updateReferences = (references, type, removedFood, reqCacoFood) => {
+    zedit.log(references.length.toString());
+    references.forEach(reference => {
+        //if (xelib.GetFileName(xelib.GetElementFile(reference)) !== 'Complete Alchemy & Cooking Overhaul.esp') {
+        //    return;
+        //}
+        const keepGoing = ((xelib.GetFileName(xelib.GetElementFile(reference)).indexOf('CACO') > -1 && xelib.GetFileName(xelib.GetElementFile(reference)).indexOf('CC') > -1)
+        || xelib.GetFileName(xelib.GetElementFile(reference)) === 'CACO_Survival Mode_Patch.esp'
+        || xelib.GetFileName(xelib.GetElementFile(reference)) === 'CACO Rare Curios Patch.esp'
+        || xelib.GetFileName(xelib.GetElementFile(reference)) === 'CACO_Saints&Seducers.esp'
+        || xelib.GetFileName(xelib.GetElementFile(reference)) === 'Complete Alchemy & Cooking Overhaul.esp');
+        if (!keepGoing ||  xelib.GetFileName(xelib.GetElementFile(reference)).indexOf('Requiem - CACO') > -1) {
+            return;
+        }
+        if (xelib.Signature(reference) === 'COBJ') {
+            zedit.log('Goes Here 1');
+            const newRef = xelib.CopyElement(reference, reqCACOFile, false);
+            zedit.log('Goes Here 2');
+            if (removedFood) {
+                xelib.SetValue(newRef, 'EDID', 'XXX_' + xelib.GetValue(reference, 'EDID'));
+                xelib.SetLinksTo(newRef, 'BNAM', REQ_DisableRecipe);
+            } else if(xelib.GetElements(reference, 'Items').length === 1 && xelib.HasKeyword(xelib.GetLinksTo(xelib.GetElements(reference, 'Items')[0], 'CNTO\\Item'), xelib.LongName(rawFood))) {
+                xelib.CopyElement(xelib.GetElement(reference, 'Items'), newRef, false);
+                xelib.AddItem(newRef, xelib.LongName(salt), '1');
+            }
+            if (!removedFood) {
+                xelib.SetElement(xelib.GetElement(newRef, 'BNAM'), xelib.GetElement(reference, 'BNAM')); 
+                const master =  xelib.GetMasterRecord(reference);
+                const overrides = [master].concat(xelib.GetOverrides(master));
+                let reqRecord;
+                overrides.forEach(override => {
+                    if (xelib.GetFileName(xelib.GetElementFile(override)) === 'Requiem.esp' || xelib.GetFileName(xelib.GetElementFile(override)) === 'Fozars_Dragonborn_-_Requiem_Patch.esp') {
+                        reqRecord = override; 
+                    }
+                })
+                if (reqRecord) {
+                    xelib.SetValue(newRef, 'EDID', xelib.GetValue(reqRecord, 'EDID'));   
+                } else {
+                    xelib.SetValue(newRef, 'EDID', xelib.GetValue(reference, 'EDID'));   
+                }
+                if (type === 3 && xelib.GetValue(reference, 'NAM1') === '4') {
+                    xelib.SetValue(newRef, 'NAM1', '3');
+                }     
+            }
+            zedit.log('Goes Here 3');
+            if (xelib.HasElement(reference, 'Conditions')) {
+                xelib.CopyElement(xelib.GetElement(reference, 'Conditions'), newRef, 'Conditions', false);
+                xelib.GetElements(newRef, 'Conditions').forEach(condition => {
+                    if (xelib.GetValue(condition, 'CTDA\\Function') !== 'GetGlobalValue' || xelib.GetHexFormID(xelib.GetLinksTo(condition, 'CTDA\\Parameter #1')) !== cookingLevel) {
+                        return;
+                    }
+                    if (xelib.GetHexFormID(xelib.GetLinksTo(condition, 'CTDA\\Comparison Value')) === apprenticeLvl || 
+                    xelib.GetHexFormID(xelib.GetLinksTo(condition, 'CTDA\\Comparison Value')) === expertLvl || 
+                    xelib.GetHexFormID(xelib.GetLinksTo(condition, 'CTDA\\Comparison Value')) === adeptLvl) {
+                        xelib.SetValue(condition, 'CTDA\\Type', '10000000');
+                        xelib.SetIntValue(condition, 'CTDA\\Comparison Value', 1);
+                        xelib.SetValue(condition, 'CTDA\\Function', 'HasPerk');
+                        xelib.SetLinksTo(condition, 'CTDA\\Perk', Chef1);                               
+                    } else if (xelib.GetHexFormID(xelib.GetLinksTo(condition, 'CTDA\\Comparison Value')) === masterLvl) {
+                        xelib.SetValue(condition, 'CTDA\\Type', '10000000');
+                        xelib.SetIntValue(condition, 'CTDA\\Comparison Value', 1);
+                        xelib.SetValue(condition, 'CTDA\\Function', 'HasPerk');
+                        xelib.SetLinksTo(condition, 'CTDA\\Perk', Chef2); 
+                    }
+                });
+            }
+            zedit.log('Goes Here 4');
+        }
+        zedit.log('Goes Here 5');
+        if (xelib.Signature(reference) === 'LVLI' && removedFood && xelib.HasLeveledEntry(reference, xelib.LongName(reqCacoFood))) {
+            zedit.log('Goes Here 6');
+            const newRef = xelib.CopyElement(reference, reqCACOFile, false);
+            xelib.RemoveLeveledEntry(newRef, xelib.LongName(reqCacoFood))
+            zedit.log('Goes Here 7');
+        }
+    });
 }
 
 let magicArray = [];
@@ -94,6 +196,7 @@ fh.loadTextFile('C:\\Users\\schof\\Downloads\\Untitled spreadsheet - REQ CACO (6
         }
     })
     const reqCacoFood = xelib.CopyElement(record, reqCACOFile, false);
+    updateReferences(xelib.GetReferencedBy(reqCacoFood), type, type === -1, reqCacoFood);
     if (type === -1) {
         xelib.SetValue(reqCacoFood, 'EDID', 'XXX_' + editorID);
         return;
@@ -121,6 +224,15 @@ fh.loadTextFile('C:\\Users\\schof\\Downloads\\Untitled spreadsheet - REQ CACO (6
         }
         xelib.SetElement(xelib.GetElement(reqCacoFood, 'DATA'), xelib.GetElement(cacoFood, 'DATA')); 
         xelib.SetElement(xelib.GetElement(reqCacoFood, 'ENIT'), xelib.GetElement(cacoFood, 'ENIT'));
+        if (type === 3 && xelib.GetFileName(xelib.GetMasterRecord(reqCacoFood)) === xelib.GetFileName(cacoFood)) {
+            if (parseInt(level) === 1) {
+                xelib.AddLeveledEntry(SublistInnCookedMeal_KRY, xelib.LongName(reqCacoFood), '1', '1');
+                xelib.AddLeveledEntry(SublistInnCookedMeal_KRY, xelib.LongName(reqCacoFood), '1', '1');
+            } else if (parseInt(level) === 2) {
+                xelib.AddLeveledEntry(SublistInnCookedMeal_KRY, xelib.LongName(reqCacoFood), '1', '1');                
+            }
+            xelib.SetValue(reqCacoFood, 'DATA', '0.7');
+        }
     }
     if (reqFood) {
         xelib.SetElement(xelib.GetElement(reqCacoFood, 'EDID'), xelib.GetElement(reqFood, 'EDID'));
