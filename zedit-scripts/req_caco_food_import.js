@@ -4,7 +4,7 @@ const reqARFile = xelib.FileByName('Requiem - Alchemy Redone.esp');
 const reqDBFile = xelib.FileByName('Fozars_Dragonborn_-_Requiem_Patch.esp');
 const reqFile = xelib.FileByName('Requiem.esp');
 const updateFile = xelib.FileByName('Update.esm');
-const cacoSurvival = xelib.FileByName('CACO_Survival Mode_Patch.esp');
+const cacoSurvival = xelib.FileByName('caco_survival mode_ussep_patch.esp');
 const cacoFishing = xelib.FileByName('CC-Fishing_CACO_Patch.esp');
 const skyrimFile = xelib.FileByName('Skyrim.esm');
 
@@ -15,18 +15,18 @@ const Survival_FoodRestoreHungerVerySmall = xelib.GetElement(updateFile, "01002E
 const Survival_FoodFortifyWarmth = xelib.GetElement(updateFile, "01002EE6");
 const Survival_FoodRestoreCold  = xelib.GetElement(updateFile, "01002EE5");
 
-const REQ_Effect_Food_DamageAttributes = xelib.GetElement(reqFile, "5E04A316");
+const REQ_Effect_Food_DamageAttributes = xelib.GetElement(reqFile, "5304A316");
 
-const FoodBlankEffect = xelib.GetElement(cacoFile, "512F8742");
-const KRYGhostveilTEST = xelib.GetElement(cacoFile, "5104C7FA");
-const beerEffect = xelib.GetElement(cacoFile, "5144BC98");
+const FoodBlankEffect = xelib.GetElement(cacoFile, "502F8742");
+const KRYGhostveilTEST = xelib.GetElement(cacoFile, "5004C7FA");
+const beerEffect = xelib.GetElement(cacoFile, "5044BC98");
 
-const SublistInnCookedMeal_KRY = xelib.GetElement(reqCACOFile, "51892091");
+const SublistInnCookedMeal_KRY = xelib.GetElement(reqCACOFile, "50892091");
 
-const REQ_DisableRecipe = xelib.GetElement(reqFile, "5EAD3B01");
+const REQ_DisableRecipe = xelib.GetElement(reqFile, "53AD3B01");
 
 
-const CACO_FoodWaterEffect = xelib.GetElement(cacoFile, "512F8742");
+const CACO_FoodWaterEffect = xelib.GetElement(cacoFile, "502F8742");
 
 const Chef1 = xelib.GetElement(reqCACOFile, "000C07CB");
 const Chef2 = xelib.GetElement(reqCACOFile, "00105F2A");
