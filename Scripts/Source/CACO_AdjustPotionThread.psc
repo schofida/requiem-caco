@@ -8,9 +8,11 @@ bool thread_queued = false
 bool thread_busy = false 									; KLV: this tracks whether we've actually started working (and therefore should ignore further trigger events)
 Potion NewPotion
 actor property PlayerRef auto
+int property ImpureOption = 0 auto
+int property ReweightOption = 0 auto
+int property RenameOption = 0 auto
 objectreference property ConverterChest auto
 ObjectReference Property CreatedPotionContainer Auto
-int Property RenameOption = 1 Auto
 Keyword Property MagicAlchDurationBased Auto
 Keyword Property MagicAlchHarmful Auto	
 Keyword Property MagicAlchBeneficial Auto	
@@ -38,15 +40,8 @@ FormList Property CACO_AlchemyPotionWeightList03 Auto
 FormList Property CACO_AlchemyPotionWeightList04 Auto
 FormList Property CACO_AlchemyCreatedPotionList Auto
 
-
-ObjectReference function get_async(Potion akPotion, int iDamageHealthDuration, int iDamageMagickaDuration, int iDamageStaminaDuration, int iRestoreHealthDuration, int iRestoreMagickaDuration, int iRestoreStaminaDuration)			;Thread queuing and set-up	
-	thread_queued = true			;Let the Thread Manager know that this thread is busy
-	RestHpos = iRestoreHealthDuration
-	RestMpos = iRestoreMagickaDuration
-	RestSpos = iRestoreStaminaDuration
-	DamHpos = iDamageHealthDuration
-	DamMpos = iDamageMagickaDuration
-	DamSpos = iDamageStaminaDuration
+ObjectReference function get_async(Potion akPotion)			;Thread queuing and set-up	
+	thread_queued = true				    				;Let the Thread Manager know that this thread is busy
 	NewPotion = akPotion
 endFunction
  
@@ -73,14 +68,20 @@ Event OnPotionCreation()
 	PlayerRef.RemoveItem(NewPotion as form, 1, true, ConverterChest)
 	objectreference MyPotionRef = ConverterChest.DropObject(NewPotion as form, 1)
 	string sNewPotionName = NewPotion.GetName()
-	string sMyPotionName = MyPotionRef.GetBaseObject().GetName()		
+	string sMyPotionName = MyPotionRef.GetBaseObject().GetName()
 	if MyPotionRef.HasKeyword(MagicAlchBeneficial) && MyPotionRef.HasKeyword(MagicAlchHarmful)			;This Potion is Impure
-		ImpurePotion(MyPotionRef)
-		CalculateWeight(MyPotionRef)
+		if ImpureOption == 1
+			ImpurePotion(MyPotionRef)
+		endIf
+		if ReweightOption == 1
+			CalculateWeight(MyPotionRef)
+		endIf
 	else																								;This Potion is pure; it does not have mixed positive and negative effects
-		CalculateWeight(MyPotionRef)
+		if ReweightOption == 1
+			CalculateWeight(MyPotionRef)
+		endIF
 	endIf
-	if RenameOption ==1
+	if RenameOption == 1
 		RenameReference(MyPotionRef)
 	endif	
 	PlayerRef.AddItem(MyPotionRef, 1, true)	

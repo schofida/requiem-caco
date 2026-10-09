@@ -71,6 +71,8 @@ int OIDJobFarmCabbage
 int OIDPotionWeights
 int OIDUpdateiNeedLists
 int OIDRagdollParalysis
+int OIDRagdollExcludePlayer
+int OIDStopPlayerRagdoll
 int OIDStopAnimations
 int OIDDisableWorkbenchOptions
 int OIDDisableChurnOptions
@@ -84,6 +86,9 @@ int OIDGardenInitialTime
 int OIDGardenRegrowTime
 int OIDAlchemyXPRate
 int OIDRecipesTeachEffects
+int OIDImpurePotions
+int OIDReweightPotions
+int OIDDisablePotionHandling
 
 GlobalVariable property CACOExtraIngrMin_KRY Auto
 GlobalVariable property CACOExtraIngrChance_KRY Auto
@@ -155,6 +160,10 @@ GlobalVariable Property CACO_GardenInitialGrowDays Auto
 GlobalVariable Property CACO_GardenRegrowDays Auto
 GlobalVariable Property CACO_OptionAlchXPRate Auto
 GlobalVariable Property CACO_OptionNotesLearnEffects Auto
+GlobalVariable Property CACO_OptionDisablePotionHandling Auto
+GlobalVariable Property CACO_OptionImpurePotions Auto
+GlobalVariable Property CACO_OptionReweightPotions Auto
+GlobalVariable Property CACO_OptionRagdollExcludePlayer Auto
 
 Formlist Property CACO_RestoreIngH1st Auto
 Formlist Property CACO_RestoreIngH2nd Auto
@@ -411,6 +420,14 @@ event OnPageReset(string page)
 		OIDMagickaDamDur = AddTextOption("$CACODamageMagicka", DurationDamList[MagickaDamVal])
 		OIDStaminaDamDur = AddTextOption("$CACODamageStamina", DurationDamList[StaminaDamVal])
 		AddEmptyOption()
+		AddHeaderOption("$CACOPotionHandling")
+		OIDDisablePotionHandling = AddToggleOption("$CACODisablePotionHandling", CACO_OptionDisablePotionHandling.GetValue() as int)
+		if CACO_OptionDisablePotionHandling.GetValue() == 0
+			OIDRenamePotions = AddToggleOption("$CACORenamePlayerPotions", CACORenamePotionOption_KRY.GetValue() as int)
+			OIDReweightPotions = AddToggleOption("$CACOReweigthPlayerPotions", CACO_OptionReweightPotions.GetValue() as int)
+			OIDImpurePotions = AddToggleOption("$CACOImpurePlayerPotions", CACO_OptionImpurePotions.GetValue() as int)
+		endIf
+		AddEmptyOption()
 		AddHeaderOption("$CACOOtherOptions")
 		OIDAlchemyXPRate = AddSliderOption("$CACOXPMultiplier", AlchXPMultVal, "{1.00}")
 		OIDRenamePotions = AddToggleOption("$CACORenamePlayerPotions", CACORenamePotionOption_KRY.GetValue() as int)
@@ -550,6 +567,8 @@ event OnPageReset(string page)
 		AddHeaderOption("$CACOTroubleshooting")	
 		OIDPotionWeights = AddTextOption("$CACOUpdatePotionWeights", "")
 		OIDRagdollParalysis = AddToggleOption("$CACORagdollParalysis", CACO_OptionRagdollParalysis.GetValue() as int)
+		OIDRagdollExcludePlayer = AddToggleOption("$CACORagdollExcludePlayer", CACO_OptionRagdollExcludePlayer.GetValue() as int)
+		OIDStopPlayerRagdoll = AddTextOption("$CACOStopPlayerRagdoll", "")
 		OIDStopAnimations = AddTextOption("$CACOStopDrunkenAnimations", "")
 		AddEmptyOption()
 		AddHeaderOption("$CACOForTesting")	
@@ -606,6 +625,9 @@ Event OnOptionSelect(int option)
 		PlayerRef.playidle(DrunkStop)
 		Utility.Wait(2)
 		PlayerRef.playidle(ForceDefaultState)		
+		ForcePageReset()	
+	elseif (option == OIDStopPlayerRagdoll)
+		PlayerRef.PushActorAway(PlayerRef,10000.0)	
 		ForcePageReset()	
 	elseif (option == OIDSwapItems)
 		if CACOIgnoreIngAddition_KRY.GetValue() == 1
@@ -1128,12 +1150,19 @@ Event OnOptionSelect(int option)
 		endif
 		ForcePageReset()			
 	elseif  (option == OIDRagdollParalysis)
-		if  CACO_OptionRagdollParalysis.GetValue() == 1
-			 CACO_OptionRagdollParalysis.SetValue(0)
+		if  CACO_OptionRagdollParalysis.GetValue() == 0
+			 CACO_OptionRagdollParalysis.SetValue(1)
 		else
-			CACO_OptionRagdollParalysis.SetValue(1)
+			CACO_OptionRagdollParalysis.SetValue(0)
 		endif
 		ChangeParalysisEffects()
+		ForcePageReset()				
+	elseif  (option == OIDRagdollExcludePlayer)
+		if  CACO_OptionRagdollExcludePlayer.GetValue() == 0
+			 CACO_OptionRagdollExcludePlayer.SetValue(1)
+		else
+			CACO_OptionRagdollExcludePlayer.SetValue(0)
+		endif
 		ForcePageReset()				
 	elseif  (option == OIDCookingCombinePortions)
 		if  CACO_OptionCombinePortions.GetValue() == 1
@@ -1161,6 +1190,91 @@ Event OnOptionSelect(int option)
 			 CACO_OptionDistillPotions.SetValue(0)
 		else
 			CACO_OptionDistillPotions.SetValue(1)
+		endif
+		ForcePageReset()
+	elseif  (option == OIDImpurePotions)
+		if  CACO_OptionImpurePotions.GetValue() == 1
+			 CACO_OptionImpurePotions.SetValue(0)
+		else
+			CACO_OptionImpurePotions.SetValue(1)
+		endif
+		Int ImpureOpt = CACO_OptionImpurePotions.GetValue() as int
+		(AdjustPotionQuest as CACO_AdjustPotionThread).ImpureOption = ImpureOpt
+		(AdjustPotionQuest as CACO_AdjustPotionThread01).ImpureOption = ImpureOpt	
+		(AdjustPotionQuest as CACO_AdjustPotionThread02).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread03).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread04).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread05).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread06).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread07).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread08).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread09).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread10).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread11).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread12).ImpureOption = ImpureOpt
+		(AdjustPotionQuest as CACO_AdjustPotionThread13).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread14).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread15).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread16).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread17).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread18).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread19).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread20).ImpureOption = ImpureOpt	
+		(AdjustPotionQuest as CACO_AdjustPotionThread21).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread22).ImpureOption = ImpureOpt
+		(AdjustPotionQuest as CACO_AdjustPotionThread23).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread24).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread25).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread26).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread27).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread28).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread29).ImpureOption = ImpureOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread30).ImpureOption = ImpureOpt
+		ForcePageReset()		
+	elseif  (option == OIDReweightPotions)
+		if  CACO_OptionReweightPotions.GetValue() == 1
+			 CACO_OptionReweightPotions.SetValue(0)
+		else
+			CACO_OptionReweightPotions.SetValue(1)
+		endif	
+		Int ReweightOpt = CACO_OptionReweightPotions.GetValue() as int
+		(AdjustPotionQuest as CACO_AdjustPotionThread).ReweightOption = ReweightOpt
+		(AdjustPotionQuest as CACO_AdjustPotionThread01).ReweightOption = ReweightOpt	
+		(AdjustPotionQuest as CACO_AdjustPotionThread02).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread03).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread04).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread05).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread06).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread07).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread08).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread09).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread10).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread11).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread12).ReweightOption = ReweightOpt
+		(AdjustPotionQuest as CACO_AdjustPotionThread13).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread14).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread15).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread16).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread17).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread18).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread19).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread20).ReweightOption = ReweightOpt	
+		(AdjustPotionQuest as CACO_AdjustPotionThread21).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread22).ReweightOption = ReweightOpt
+		(AdjustPotionQuest as CACO_AdjustPotionThread23).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread24).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread25).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread26).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread27).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread28).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread29).ReweightOption = ReweightOpt		
+		(AdjustPotionQuest as CACO_AdjustPotionThread30).ReweightOption = ReweightOpt
+		ForcePageReset()		
+	elseif  (option == OIDDisablePotionHandling)
+		if  CACO_OptionDisablePotionHandling.GetValue() == 0
+			 CACO_OptionDisablePotionHandling.SetValue(1)
+		else
+			CACO_OptionDisablePotionHandling.SetValue(0)
 		endif
 		ForcePageReset()		
 	elseif  (option == OIDRenamePotions)
@@ -1615,6 +1729,12 @@ event OnOptionHighlight(int option)
 		SetInfoText("$CACODesc_RequireMortar")
 	elseif (option == OIDRenamePotions)
 		SetInfoText("$CACODesc_RenamePotions")
+	elseif (option == OIDReweightPotions)
+		SetInfoText("$CACODesc_ReweightPotions")
+	elseif (option == OIDImpurePotions)
+		SetInfoText("$CACODesc_ImpurePotions")
+	elseif (option == OIDDisablePotionHandling)
+		SetInfoText("$CACODesc_DisablePotionHandling")
 	elseif (option == OIDFoodFrequency)
 		SetInfoText("$CACODesc_FoodFrequency")
 	elseif (option == OIDFoodQuantity)
@@ -1703,6 +1823,10 @@ event OnOptionHighlight(int option)
 		SetInfoText("$CACODesc_UpdateiNeedLists")	
 	elseif (option == OIDRagdollParalysis)
 		SetInfoText("$CACODesc_RagdollParalysis")
+	elseif (option == OIDRagdollExcludePlayer)
+		SetInfoText("$CACODesc_RagdollExcludePlayer")
+	elseif (option == OIDStopPlayerRagdoll)
+		SetInfoText("$CACODesc_StopPlayerRagdoll")
 	endif
 endevent
 

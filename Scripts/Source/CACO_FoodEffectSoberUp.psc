@@ -10,6 +10,8 @@ Faction Property ToleranceFaction Auto
 Faction Property ToleranceIncreasedFaction Auto
 GlobalVariable Property BaseTolerance Auto
 Spell Property SoberUpSpell Auto
+Perk Property PartyAnimal Auto
+
 int ToleranceAmt
 int ToleranceMult
 float UpdateTime
@@ -40,21 +42,29 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
 	TargetRef = akTarget as Actor
 	ToleranceMult = BaseTolerance.GetValue() as int
 	ToleranceAmt = TargetRef.GetFactionRank(ToleranceFaction) as int
-	if ToleranceAmt >= (ToleranceMult*5)
+	;if ToleranceAmt >= (ToleranceMult*5)
+	;	UpdateTime = 0.05
+	;elseif ToleranceAmt >= (ToleranceMult*4)
+	;	UpdateTime = 0.06
+	;elseif ToleranceAmt >= (ToleranceMult*3)
+	;	UpdateTime = 0.07
+	;elseif ToleranceAmt >= (ToleranceMult*2)
+	;	UpdateTime = 0.08
+	;elseif ToleranceAmt >= ToleranceMult
+	;	UpdateTime = 0.09
+	;elseif ToleranceAmt < 0
+	;	TargetRef.AddToFaction(ToleranceFaction)
+	;	UpdateTime = 0.1
+	;else
+	;	UpdateTime = 0.1
+	;endif
+	if TargetRef.HasPerk(PartyAnimal) ;schofida - Party Animal perk gives you 5 extra tolerance rank
 		UpdateTime = 0.05
-	elseif ToleranceAmt >= (ToleranceMult*4)
-		UpdateTime = 0.06
-	elseif ToleranceAmt >= (ToleranceMult*3)
-		UpdateTime = 0.07
-	elseif ToleranceAmt >= (ToleranceMult*2)
-		UpdateTime = 0.08
-	elseif ToleranceAmt >= ToleranceMult
-		UpdateTime = 0.09
-	elseif ToleranceAmt < 0
+	Else
+		UpdateTime = 0.1
+	endif
+	if ToleranceAmt < 0
 		TargetRef.AddToFaction(ToleranceFaction)
-		UpdateTime = 0.1
-	else
-		UpdateTime = 0.1
 	endif
 	if (akTarget == Game.GetPlayer()) && (CACO_AlcoholDrunkMessages.GetValue() == 1)
 		DisplayMSG = true

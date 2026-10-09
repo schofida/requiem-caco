@@ -8,6 +8,7 @@ Faction Property ToleranceIncreasedFaction Auto
 Spell Property AlcoholEffect Auto
 Idle property StandDrinking auto
 Idle property ChairDrinking auto
+Perk Property PartyAnimal Auto
 
 GlobalVariable Property BaseTolerance Auto
 GlobalVariable Property AlcoholLvl01 Auto
@@ -53,26 +54,30 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
 	int IndvToleranceAmt = 0
 	int ToleranceMult = BaseTolerance.GetValue() as int	; individual tolerance
 	int 	ToleranceRank = akTarget.GetFactionRank(ToleranceFaction) as int
-	if ToleranceRank >= ToleranceMult	
-		if ToleranceRank >= (ToleranceMult*5)
-			IndvToleranceAmt = 5
-		elseif ToleranceRank >= (ToleranceMult*4)
-			IndvToleranceAmt = 4
-		elseif ToleranceRank >= (ToleranceMult*3)
-			IndvToleranceAmt = 3
-		elseif ToleranceRank >= (ToleranceMult*2)
-			IndvToleranceAmt = 2
-		else
-			IndvToleranceAmt = 1
-		endif
+	;if ToleranceRank >= ToleranceMult	
+	;	if ToleranceRank >= (ToleranceMult*5)
+	;		IndvToleranceAmt = 5
+	;	elseif ToleranceRank >= (ToleranceMult*4)
+	;		IndvToleranceAmt = 4
+	;	elseif ToleranceRank >= (ToleranceMult*3)
+	;		IndvToleranceAmt = 3
+	;	elseif ToleranceRank >= (ToleranceMult*2)
+	;		IndvToleranceAmt = 2
+	;	else
+	;		IndvToleranceAmt = 1
+	;	endif
+	;endif
+
+	if (akTarget.HasPerk(PartyAnimal)) ;schofida - Party Animal perk gives you 5 extra tolerance rank
+		IndvToleranceAmt = 5
 	endif
 	
 	int ResistAlc = akTarget.GetActorValue("PoisonResist") as int
 	if ResistAlc >= 90
 		IndvToleranceAmt = IndvToleranceAmt + 3
-	elseif ResistAlc >= 60
+	elseif ResistAlc >= 75
 		IndvToleranceAmt = IndvToleranceAmt + 2		
-	elseif ResistAlc >= 30
+	elseif ResistAlc >= 50
 		IndvToleranceAmt = IndvToleranceAmt + 1	
 	endif	
 

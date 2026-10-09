@@ -17,6 +17,7 @@ GlobalVariable Property CACO_DamageStaminaDuration Auto
 GlobalVariable Property CACO_RestoreHealthDuration Auto
 GlobalVariable Property CACO_RestoreMagickaDuration Auto
 GlobalVariable Property CACO_RestoreStaminaDuration Auto
+GlobalVariable Property CACO_DisablePotionHandling Auto
 keyword property VendorItemPotion auto
 keyword property VendorItemPoison auto
 Formlist Property PotionList Auto
@@ -66,14 +67,16 @@ Event Init()
 EndEvent
 
 Event OnSit(ObjectReference akFurniture)
-	if akFurniture.HasKeyWord(WICraftingAlchemy)
-		CACOQuest.FixIngConsumeFunction(REQ_CACO_CACOIngrMags) ; schofida - set ingr magnitude to CACO
-		GoToState("Crafting")
-		furn = akFurniture
-	else
-		GoToState("")
-		furn = none
-	endIf
+	if CACO_DisablePotionHandling.GetValue() == 0
+		if akFurniture.HasKeyWord(WICraftingAlchemy)
+			CACOQuest.FixIngConsumeFunction(REQ_CACO_CACOIngrMags) ; schofida - set ingr magnitude to CACO
+			GoToState("Crafting")
+			furn = akFurniture
+		else
+			GoToState("")
+			furn = none
+		endIf
+	endif
 EndEvent
 
 Event OnGetUp(ObjectReference akFurniture)
@@ -132,7 +135,7 @@ Event OnItemAdded(Form akBaseItem, Int aiItemCount, ObjectReference akItemRefere
 			CACO_AdjustPotionThreadManager threadmgr = AdjustPotionQuest as CACO_AdjustPotionThreadManager    
 			int potionIndex = 0									
 			while potionIndex < aiItemCount								
-				threadmgr.AdjustPotionAsync(akBaseItem as Potion, CACO_DamageHealthDuration.GetValueInt(), CACO_DamageMagickaDuration.GetValueInt(), CACO_DamageStaminaDuration.GetValueInt(), CACO_RestoreHealthDuration.GetValueInt(), CACO_RestoreMagickaDuration.GetValueInt(), CACO_RestoreStaminaDuration.GetValueInt())		
+				threadmgr.AdjustPotionAsync(akBaseItem as Potion)		
 				potionIndex += 1
 			endwhile
 			threadmgr.wait_all()

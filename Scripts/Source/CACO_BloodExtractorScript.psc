@@ -7,10 +7,11 @@ Form Property ThisItem Auto
 {The item this script is attached to. Self doesn't work on items in containers.}
 
 Event OnEquipped(Actor akActor)
-	if akActor == Game.GetPlayer() && !akActor.HasPerk(CACO_BloodHarvestPerk)
+	if akActor == Game.GetPlayer() && !akActor.HasPerk(CACO_BloodHarvestPerk) || akActor == Game.GetPlayer() && !akActor.HasPerk(CACO_HarvestBloodPerkMsgBox)
 		debug.notification("You lack the knowledge needed to use this item.")
 		akActor.UnequipItem(ThisItem)
 	endIf
 endEvent
 
 Perk Property CACO_BloodHarvestPerk Auto
+Perk Property CACO_HarvestBloodPerkMsgBox Auto
